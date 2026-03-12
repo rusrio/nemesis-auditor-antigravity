@@ -18,22 +18,22 @@
     +===============================================================+
 ```
 
-An iterative deep-logic security audit agent system for [Antigravity IDE](https://antigravity.dev). Nemesis combines two complementary audit methodologies in an alternating feedback loop to find bugs that neither can catch alone. **Language-agnostic** — works on Solidity, Move, Rust, Go, C++, Python, TypeScript, or any codebase.
+An iterative deep-logic security audit skill system for [Antigravity IDE](https://antigravity.google). Nemesis combines two complementary audit methodologies in an alternating feedback loop to find bugs that neither can catch alone. **Language-agnostic** — works on Solidity, Move, Rust, Go, C++, Python, TypeScript, or any codebase.
 
-> This is a fork of [nemesis-auditor](https://github.com/0xiehnnkta/nemesis-auditor) adapted for Antigravity.
+> Fork of [nemesis-auditor](https://github.com/0xiehnnkta/nemesis-auditor) adapted for Antigravity.
 > The original Claude Code version (`.claude/` folder) is preserved for cross-compatibility.
 
 ---
 
 ## How It Works
 
-Nemesis runs an **iterative back-and-forth loop** between three agents:
+Nemesis runs an **iterative back-and-forth loop** between three skills:
 
-| Agent | Role | What It Finds |
+| Skill | Role | What It Finds |
 |-------|------|---------------|
 | `nemesis` | Orchestrator | Runs the loop, manages passes, writes final report |
-| `feynman` | Sub-agent | Business logic bugs via first-principles questioning |
-| `state` | Sub-agent | Coupled state desync bugs — maps every mutation path |
+| `feynman` | Sub-skill | Business logic bugs via first-principles questioning |
+| `state` | Sub-skill | Coupled state desync bugs — maps every mutation path |
 
 The loop alternates Feynman → State → Feynman → State until **convergence** (no new findings), max 6 passes.
 
@@ -41,36 +41,44 @@ The loop alternates Feynman → State → Feynman → State until **convergence*
 
 ## Requirements
 
-- [Antigravity IDE](https://antigravity.dev) installed and configured
+- [Antigravity IDE](https://antigravity.google) installed and configured
 - A codebase to audit
 
 ---
 
 ## Installation
 
-### Copy into your project (recommended)
+### Option A: Copy into your project (recommended)
 
 ```bash
 # Clone this repo
 git clone https://github.com/rusrio/nemesis-auditor-antigravity.git
 
-# Copy the .antigravity folder into your project
-cp -r nemesis-auditor-antigravity/.antigravity /path/to/your-project/
+# Copy the .agent folder into your project
+cp -r nemesis-auditor-antigravity/.agent /path/to/your-project/
 
 # Create the outputs directory
 mkdir -p /path/to/your-project/outputs
 
-# You can delete the cloned repo after copying
+# Remove the cloned repo
 rm -rf nemesis-auditor-antigravity
 ```
 
-### Or run from this repo
+### Option B: Install globally (available in all your projects)
+
+```bash
+git clone https://github.com/rusrio/nemesis-auditor-antigravity.git
+cp -r nemesis-auditor-antigravity/.agent/skills/* ~/.gemini/antigravity/skills/
+rm -rf nemesis-auditor-antigravity
+```
+
+### Option C: Run from this repo
 
 ```bash
 git clone https://github.com/rusrio/nemesis-auditor-antigravity.git
 cd nemesis-auditor-antigravity
 
-# Symlink your codebase
+# Symlink your codebase into this directory
 ln -s /path/to/your/contracts ./contracts
 
 # Open in Antigravity
@@ -84,7 +92,7 @@ antigravity .
 ### 1. Open your project in Antigravity
 
 ```bash
-cd /path/to/your-project   # must contain the .antigravity/ folder
+cd /path/to/your-project   # must contain .agent/skills/
 antigravity .
 ```
 
@@ -95,24 +103,20 @@ Type any of these in the Antigravity chat:
 ```
 nemesis audit                           # Full iterative audit (recommended)
 nemesis audit --contract MyToken        # Audit a single contract
-nemesis audit --pass1                   # Only run the Feynman agent
-nemesis audit --pass2                   # Only run the State agent
+nemesis audit --pass1                   # Only run the Feynman skill
+nemesis audit --pass2                   # Only run the State skill
 nemesis audit --continue                # Resume if interrupted
 ```
 
-### 3. What happens next
+### 3. What happens
 
-Once you trigger the audit, the `nemesis` agent will:
-
-1. **Phase 0 — Recon:** Attacker mindset scan — builds hit list and initial coupling hypothesis → saves to `outputs/recon.md`
-2. **Pass 1 — Feynman Agent:** Reads every function line-by-line, questioning WHY each line exists. Produces findings, suspects, and exposed assumptions → saves to `outputs/feynman-pass1.md`
-3. **Pass 2 — State Agent:** Maps every coupled state pair, traces every mutation path, finds gaps where one side updates without the other. Uses Pass 1's suspects as extra targets → saves to `outputs/state-pass2.md`
-4. **Pass 3+ — Iterative refinement:** Feynman re-interrogates State's gaps. State re-checks Feynman's new findings. Alternates until nothing new surfaces.
-5. **Final — Consolidation:** Deduplicates, verifies all Critical/High/Medium findings, produces final report → saves to `outputs/nemesis-verified.md`
+1. **Phase 0 — Recon:** Attacker mindset scan, builds hit list and coupling hypothesis → `outputs/recon.md`
+2. **Pass 1 — Feynman:** Questions every function line-by-line. Produces findings, suspects, exposed assumptions → `outputs/feynman-pass1.md`
+3. **Pass 2 — State:** Maps every coupled state pair, traces mutation paths, finds desync gaps enriched by Pass 1 suspects → `outputs/state-pass2.md`
+4. **Pass 3+ — Iterative:** Feynman re-interrogates State's gaps. State re-checks Feynman's new findings. Alternates until convergence.
+5. **Final — Consolidation:** Deduplicates, verifies all Critical/High/Medium findings → `outputs/nemesis-verified.md`
 
 ### 4. Read the results
-
-Findings are saved to `outputs/` in your project:
 
 ```
 outputs/
@@ -127,7 +131,7 @@ outputs/
 ### 5. Resume if interrupted
 
 ```
-nemesis audit --continue    # Picks up from the last completed pass
+nemesis audit --continue
 ```
 
 ---
@@ -137,29 +141,34 @@ nemesis audit --continue    # Picks up from the last completed pass
 | Command | What It Does |
 |---------|--------------|
 | `nemesis audit` | Full iterative audit until convergence |
-| `nemesis audit --pass1` | Pass 1 only — full Feynman Agent |
-| `nemesis audit --pass2` | Pass 2 only — State Inconsistency on existing Pass 1 output |
-| `nemesis audit --continue` | Resume from where the last pass left off |
+| `nemesis audit --pass1` | Pass 1 only — full Feynman skill |
+| `nemesis audit --pass2` | Pass 2 only — State skill on existing Pass 1 output |
+| `nemesis audit --continue` | Resume from last completed pass |
 | `nemesis audit --contract [name]` | Full audit scoped to a single contract |
-| `feynman audit` | Run the Feynman Agent standalone |
-| `state audit` | Run the State Inconsistency Agent standalone |
+| `feynman audit` | Run Feynman skill standalone |
+| `state audit` | Run State skill standalone |
 
 ---
 
 ## Architecture
 
 ```
-.antigravity/
-  agents/
-    nemesis.md            # Orchestrator — runs the iterative loop
-    feynman.md            # First-principles logic bug finder
-    state.md              # Coupled state desync detector
-  AGENTS.md               # Architecture overview and migration notes
+.agent/
+  skills/
+    nemesis/
+      SKILL.md              # Orchestrator — runs the iterative loop
+      references/
+        architecture.md     # Architecture reference
+    feynman/
+      SKILL.md              # First-principles logic bug finder
+    state/
+      SKILL.md              # Coupled state desync detector
 
-outputs/                  # Audit findings (gitignored or committed per preference)
+outputs/                    # Audit findings per pass
 ```
 
 ### Original Claude Code skills (preserved for reference)
+
 ```
 .claude/
   skills/
@@ -172,8 +181,6 @@ outputs/                  # Audit findings (gitignored or committed per preferen
 
 ## Finding Format
 
-Each finding in the final report includes:
-
 ```markdown
 ### Finding NEM-001: [Title]
 **Severity:** CRITICAL | HIGH | MEDIUM | LOW
@@ -183,7 +190,7 @@ Each finding in the final report includes:
 **Trigger Sequence:**
 1. [Step-by-step to reproduce]
 
-**Impact:** [What goes wrong -- fund loss, locked state, etc.]
+**Impact:** [Fund loss, locked state, incorrect accounting, etc.]
 **Fix:** [Minimal code change]
 **Verification:** Code trace | PoC sequence | Both
 ```
@@ -191,8 +198,6 @@ Each finding in the final report includes:
 ---
 
 ## Language Support
-
-Nemesis is **language-agnostic**. Logic bugs live in the reasoning, not the syntax.
 
 | Language | Status |
 |----------|--------|
